@@ -51,8 +51,8 @@ Route::group(['middleware' => ['web', 'auth', 'roles']], function(){
     });
 
     // ATUR IP ADDRESS DISINI
-    Route::group(['middleware' => ['ipcheck:'.config('absensi.ip_address')]], function() {
+    // Route::group(['middleware' => ['ipcheck:'.config('absensi.ip_address')]], function() {
         Route::patch('/absen/{kehadiran}', 'PresentsController@checkOut')->name('kehadiran.check-out');
         Route::post('/absen', 'PresentsController@checkIn')->name('kehadiran.check-in');
-    });
+    // });
 });

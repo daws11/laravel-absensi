@@ -84,8 +84,8 @@ class UsersController extends Controller
         $kalender = json_decode($kalender, true);
         $libur = false;
         $holiday = null;
-        if ($kalender['data'] != false) {
-            if ($kalender['data']['holiday']['data']) {
+        if (isset($kalender['data']) && $kalender['data'] != false) {
+            if (isset($kalender['data']['holiday']['data']) && !empty($kalender['data']['holiday']['data'])) {
                 foreach ($kalender['data']['holiday']['data'] as $key => $value) {
                     if ($value['date'] == date('Y-m-d')) {
                         $holiday = $value['name'];

@@ -8,6 +8,7 @@ use App\Exports\PresentExport;
 use App\Exports\UsersPresentExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PresentsController extends Controller
 {
@@ -92,55 +93,41 @@ class PresentsController extends Controller
 
     public function checkIn(Request $request)
     {
-        $users = User::all();
-        $data['jam_masuk']  = date('H:i:s');
-        $data['tanggal']    = date('Y-m-d');
-        $data['user_id']    = $request->user_id;
+        $user_id = $request->user_id;
 
-        if (date('l') == 'Saturday' || date('l') == 'Sunday') {
-            return redirect()->back()->with('error','Hari Libur Tidak bisa Check In');
+        // Cek apakah user sudah check-in hari ini
+        $existingPresent = Present::where('user_id', $user_id)
+            ->whereDate('tanggal', Carbon::today())
+            ->first();
+
+        if ($existingPresent) {
+            return redirect()->back()->with('error', 'Anda sudah melakukan check-in hari ini.');
         }
 
-        foreach ($users as $user) {
-            $absen = Present::whereUserId($user->id)->whereTanggal($data['tanggal'])->first();
-            if (!$absen) {
-                if ($user->id != $data['user_id']) {
-                    Present::create([
-                        'keterangan'    => 'Alpha',
-                        'tanggal'       => date('Y-m-d'),
-                        'user_id'       => $user->id
-                    ]);
-                }
-            }
-        }
+        // Simpan data check-in
+        Present::create([
+            'user_id' => $user_id,
+            'tanggal' => Carbon::now(),
+            'jam_masuk' => Carbon::now(),
+            'keterangan' => 'Masuk',
+        ]);
 
-        if (strtotime($data['jam_masuk']) >= strtotime(config('absensi.jam_masuk') .' -1 hours') && strtotime($data['jam_masuk']) <= strtotime(config('absensi.jam_masuk'))) {
-            $data['keterangan'] = 'Masuk';
-        } else if (strtotime($data['jam_masuk']) > strtotime(config('absensi.jam_masuk')) && strtotime($data['jam_masuk']) <= strtotime(config('absensi.jam_pulang'))) {
-            $data['keterangan'] = 'Telat';
-        } else {
-            $data['keterangan'] = 'Alpha';
-        }
-
-        $present = Present::whereUserId($data['user_id'])->whereTanggal($data['tanggal'])->first();
-        if ($present) {
-            if ($present->keterangan == 'Alpha') {
-                $present->update($data);
-                return redirect()->back()->with('success','Check-in berhasil');
-            } else {
-                return redirect()->back()->with('error','Check-in gagal');
-            }
-        }
-
-        Present::create($data);
-        return redirect()->back()->with('success','Check-in berhasil');
+        return redirect()->back()->with('success', 'Check-in berhasil.');
     }
 
     public function checkOut(Request $request, Present $kehadiran)
     {
-        $data['jam_keluar'] = date('H:i:s');
-        $kehadiran->update($data);
-        return redirect()->back()->with('success', 'Check-out berhasil');
+        // Cek apakah user sudah check-out hari ini
+        if ($kehadiran->jam_keluar) {
+            return redirect()->back()->with('error', 'Anda sudah melakukan check-out hari ini.');
+        }
+
+        // Simpan data check-out
+        $kehadiran->update([
+            'jam_keluar' => Carbon::now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Check-out berhasil.');
     }
 
     /**
